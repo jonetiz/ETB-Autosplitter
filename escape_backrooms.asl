@@ -1,4 +1,4 @@
-//2.6 does not currently support level splitting.
+//Now supporting 1.21 and 2.6, however 2.6 does not have level splitting.
 //by Xero
 
 state ("Backrooms-Win64-Shipping")
@@ -11,6 +11,7 @@ state ("Backrooms-Win64-Shipping", "2.6")
 {
 	long level		: 0x49B08E8; // 13194139536090 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
 	bool loading	: 0x49AD844; // loading == 1, seems consistent
+	int  loading2	: 0x04AE06C0, 0x30, 0x590, 0x3D8, 0x278, 0xD8, 0x618, 0x2ED; // 1 or 127 when loading; 81 in pause screen, 0 in regular gameplay
 	int  end		: 0x458C8A0; // end = 1019122; same for 1.2 @ 0x458C868 & 0x458C878 = 104?
 }
 
@@ -36,6 +37,7 @@ state ("Backrooms-Win64-Shipping", "1.21")
 startup
 {
 	settings.Add("multisplit", false, "Split on same area?");
+	settings.Add("coop", false, "Co-op? (v2.6 Only)");
 	vars.enteredLevels = new List<long>() { 13194139535979, 13194139536007 };
 	vars.validLevels_old = new List<long>() { 13194139536007, 13194139535993, 13194139535989, 13194139536001, 13194139535984, 13194139535996, 13194139535990, 13194139535986 };
 }
@@ -116,5 +118,9 @@ split
 isLoading
 {	
 	// version independent, will always be bool
-	return current.loading;
+	if (settings['coop'] && version == "2.6") {
+		return (current.loading2 == 1 || current.loading2 == 127);
+	} else {
+		return current.loading;
+	}
 }
