@@ -1,13 +1,20 @@
-//Only currently supports 13 August 2022 version of game.
-
+//2.6 does not currently support level splitting.
 //by Xero
 
-/*state ("Backrooms-Win64-Shipping")
-{
-	long level	: 0x45FB234;
-} for current version TODO */
-
 state ("Backrooms-Win64-Shipping")
+{
+	bool version_check: 0x49B0868; // seems to be zero on v1.21 and big number on 2.6
+}
+
+
+state ("Backrooms-Win64-Shipping", "2.6")
+{
+	long level		: 0x49B08E8; // 13194139536090 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
+	bool loading	: 0x49AD844; // loading == 1, seems consistent
+	int  end		: 0x458C8A0; // end = 1019122; same for 1.2 @ 0x458C868 & 0x458C878 = 104?
+}
+
+state ("Backrooms-Win64-Shipping", "1.21")
 {
 	long level 	: 0x4A44C28;
 	/* seems consistent
@@ -22,7 +29,7 @@ state ("Backrooms-Win64-Shipping")
 	9223372036854775807	= 13194139535986
 	*/
 	
-	long loading: 0x49B3D18; // loading == 4294967295 when loading seems to work
+	bool loading: 0x468B37C; // loading == 1
 	int end		: 0x461B920; // 0x461B8E8 end = 79; other offsets: 0x461B8F8 = 79, 0x461B920 = 390156
 }
 
@@ -30,36 +37,84 @@ startup
 {
 	settings.Add("multisplit", false, "Split on same area?");
 	vars.enteredLevels = new List<long>() { 13194139535979, 13194139536007 };
-	vars.validLevels = new List<long>() { 13194139536007, 13194139535993, 13194139535989, 13194139536001, 13194139535984, 13194139535996, 13194139535990, 13194139535986 };
+	vars.validLevels_old = new List<long>() { 13194139536007, 13194139535993, 13194139535989, 13194139536001, 13194139535984, 13194139535996, 13194139535990, 13194139535986 };
+}
+
+init
+{
+	// Temporary, might not be consistent; if anything it will always default to latest version which is fine in theory
+	if (current.version_check) {
+		version = "2.6";
+	} else {
+		version = "1.21";
+	}
 }
 
 start
 {
-	vars.enteredLevels = new List<long>() { 13194139535979, 13194139536007 };
-	return (current.level == 13194139536007 && current.loading == 4294967295);
+	switch (version)
+	{
+		case "1.21":
+			vars.enteredLevels = new List<long>() { 13194139535979, 13194139536007 };
+			return (current.level == 13194139536007 && current.loading);
+			break;
+		
+		case "2.6":
+			return (current.level == 13194139536090 && current.loading);
+			break;
+		
+		default:
+			break;
+	}
 }
 
 reset
 {
-	return current.level == 13194139535979;
+	switch (version)
+	{
+		case "1.21":
+			return current.level == 13194139535979;
+			break;
+		
+		case "2.6":
+			return current.level == 13194139536054;
+			break;
+		
+		default:
+			break;
+	}
 }
 
 split
 {
-	if (current.level != old.level && vars.validLevels.Contains(current.level))
+	switch (version)
 	{
-		if (!vars.enteredLevels.Contains(current.level)) {
-			print(current.level.ToString());
-			vars.enteredLevels.Add(current.level);
-			return true;
-		} else {
-			return settings["multisplit"];
-		}
+		case "1.21":
+			if (current.level != old.level && vars.validLevels_old.Contains(current.level))
+			{
+				if (!vars.enteredLevels.Contains(current.level)) {
+					print(current.level.ToString());
+					vars.enteredLevels.Add(current.level);
+					return true;
+				} else {
+					return settings["multisplit"];
+				}
+			}
+			return (current.end == 390156 && current.level == 13194139535986);
+			break;
+			
+		case "2.6":
+			// 2.6 needs level splitting
+			return (current.end == 1019122);
+			break;
+			
+		default:
+			break;
 	}
-	return (current.end == 390156 && current.level == 13194139535986);
 }
 
 isLoading
-{
-	return current.loading == 4294967295;
+{	
+	// version independent, will always be bool
+	return current.loading;
 }
