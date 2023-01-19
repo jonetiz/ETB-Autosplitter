@@ -60,7 +60,7 @@ start
 			break;
 		
 		case "2.6":
-			return (current.level == 13194139536090 && current.loading);
+			return (current.level == 13194139536090);
 			break;
 		
 		default:
