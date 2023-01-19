@@ -11,7 +11,7 @@ state ("Backrooms-Win64-Shipping", "2.6")
 {
 	long level		: 0x49B08E8; // 13194139536090 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
 	bool loading	: 0x49AD844; // loading == 1, seems consistent
-	int  loading2	: 0x04AE06C0, 0x30, 0x590, 0x3D8, 0x278, 0xD8, 0x618, 0x2ED; // 1 or 127 when loading; 81 in pause screen, 0 in regular gameplay
+	byte loading2	: 0x04AE06C0, 0x30, 0x590, 0x3D8, 0x278, 0xD8, 0x618, 0x2ED; // 1 or 127 when loading; 81 in pause screen, 0 in regular gameplay
 	int  end		: 0x458C8A0; // end = 1019122; same for 1.2 @ 0x458C868 & 0x458C878 = 104?
 }
 
@@ -118,7 +118,7 @@ split
 isLoading
 {	
 	// version independent, will always be bool
-	if (settings['coop'] && version == "2.6") {
+	if (settings["coop"] && version == "2.6") {
 		return (current.loading2 == 1 || current.loading2 == 127);
 	} else {
 		return current.loading;
