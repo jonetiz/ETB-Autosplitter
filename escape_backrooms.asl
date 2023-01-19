@@ -119,7 +119,7 @@ isLoading
 {	
 	// version independent, will always be bool
 	if (settings["coop"] && version == "2.6") {
-		return (current.loading2 != 0 || current.loading2 != 81);
+		return (current.loading2 != 0 && current.loading2 != 81);
 	} else {
 		return current.loading;
 	}
