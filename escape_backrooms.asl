@@ -1,18 +1,18 @@
-//Now supporting 1.21 and 2.6, however 2.6 does not have level splitting.
+//Now supporting 1.21 and 2.8, however 2.8 does not have level splitting.
 //by Xero
 
 state ("Backrooms-Win64-Shipping")
 {
-	bool version_check: 0x49B0868; // seems to be zero on v1.21 and big number on 2.6
+	bool version_check: 0x49B0868; // seems to be zero on v1.21 and big number on 2.8
 }
 
 
-state ("Backrooms-Win64-Shipping", "2.6")
+state ("Backrooms-Win64-Shipping", "2.8")
 {
-	long level		: 0x49B08E8; // 13194139536090 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
-	bool loading	: 0x49AD844; // loading == 1, seems consistent
-	byte loading2	: 0x04AE06C0, 0x30, 0x590, 0x3D8, 0x278, 0xD8, 0x618, 0x2ED; // 1 or 127 when loading; 81 in pause screen, 0 in regular gameplay
-	int  end		: 0x458C8A0; // end = 1019122; same for 1.2 @ 0x458C868 & 0x458C878 = 104?
+	long level		: 0x49B0968; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
+	//bool loading	: 0x49AD844; // loading == 1, seems consistent
+	//byte loading2	: 0x04AE06C0, 0x30, 0x590, 0x3D8, 0x278, 0xD8, 0x618, 0x2ED; // 1 or 127 when loading; 81 in pause screen, 0 in regular gameplay
+	//int  end		: 0x458C8A0; // end = 1019122; same for 1.2 @ 0x458C868 & 0x458C878 = 104?
 }
 
 state ("Backrooms-Win64-Shipping", "1.21")
@@ -37,7 +37,7 @@ state ("Backrooms-Win64-Shipping", "1.21")
 startup
 {
 	settings.Add("multisplit", false, "Split on same area?");
-	settings.Add("coop", false, "Co-op? (v2.6 Only)");
+	//settings.Add("coop", false, "Co-op? (v2.8 Only)");
 	vars.enteredLevels = new List<long>() { 13194139535979, 13194139536007 };
 	vars.validLevels_old = new List<long>() { 13194139536007, 13194139535993, 13194139535989, 13194139536001, 13194139535984, 13194139535996, 13194139535990, 13194139535986 };
 }
@@ -46,7 +46,7 @@ init
 {
 	// Temporary, might not be consistent; if anything it will always default to latest version which is fine in theory
 	if (current.version_check) {
-		version = "2.6";
+		version = "2.8";
 	} else {
 		version = "1.21";
 	}
@@ -61,8 +61,8 @@ start
 			return (current.level == 13194139536007 && current.loading);
 			break;
 		
-		case "2.6":
-			return (current.level == 13194139536090);
+		case "2.8":
+			return (current.level == 13194139536091);
 			break;
 		
 		default:
@@ -78,7 +78,7 @@ reset
 			return current.level == 13194139535979;
 			break;
 		
-		case "2.6":
+		case "2.8":
 			return current.level == 13194139536054;
 			break;
 		
@@ -105,9 +105,9 @@ split
 			return (current.end == 390156 && current.level == 13194139535986);
 			break;
 			
-		case "2.6":
-			// 2.6 needs level splitting
-			return (current.end == 1019122);
+		case "2.8":
+			// 2.8 needs level splitting
+			//return (current.end == 1019122);
 			break;
 			
 		default:
@@ -117,10 +117,11 @@ split
 
 isLoading
 {	
+	// Load removal disabled while full RTA
 	// version independent, will always be bool
-	if (settings["coop"] && version == "2.6") {
+	/*if (settings["coop"] && version == "2.8") {
 		return (current.loading2 != 0 && current.loading2 != 81);
 	} else {
 		return current.loading;
-	}
+	}*/
 }
