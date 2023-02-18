@@ -1,18 +1,14 @@
-//Deprecated v1.21 functionality. Added splitting working for current version, no load removal.
+//Added support for MP, 2.9 only confirmed working.
 //by Xero
-
-state ("Backrooms-Win64-Shipping")
-{
-	bool version_check: 0x49B0868; // seems to be zero on v1.21 and big number on 2.9
-}
-
 
 state ("Backrooms-Win64-Shipping", "2.9")
 {
+	bool mp   		: 0x45FA838; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
 	long level		: 0x49B0968; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
-	int  loading	: 0x4567994; // loading == 1, seems consistent
-	int  rslcheck	: 0x4A489F0; // if it's > 1, we're almost certainly *not* restarting level, and want to split
-	int  end		: 0x458C908; // end = 99
+	int  loading	: 0x4567994; // loading == odd, seems consistent
+	int  loading_mp : 0x04AF4E68, 0x0, 0x0, 0x30, 0x380, 0x10, 0xE0, 0x80, 0x2AF0, 0xC; // loading == 2 on first lobby, then 3.
+	int  rslcheck	: 0x4A489F0; // if it's > 1, we're almost certainly *not* restarting level, and want to split (sp only)
+	bool ingame		: 0x45624E4; // if true, player is ingame (not in main menu);
 }
 
 startup
@@ -25,15 +21,16 @@ startup
 
 init
 {
-	// Temporary, might not be consistent; if anything it will always default to latest version which is fine in theory
-	// if (current.version_check) {
-	// 	version = "2.9";
-	// } else {
-	// 	version = "1.21";
-	// }
 	version = "2.9";
-	vars.loadingThreshold = 1;
+	vars.loadingThreshold = 2;
 	vars.loading = false;
+}
+
+update
+{
+	if (current.loading_mp == 3) {
+		vars.loadingThreshold = 3; // handle lobbies after first having loading == 3
+	}
 }
 
 start
@@ -49,29 +46,22 @@ start
 	}
 }
 
-/* Disabled for now because the game seems to cycle through the value when switching levels, kinda weird
-
 reset 
 {
-	switch (version)
-	{
-		case "2.9":
-			return (current.level == 13194139536054);
-			break;
-		
-		default:
-			break;
-	}
-}*/
+	return (!current.ingame);
+}
 
 split
 {
 	switch (version)
 	{
 		case "2.9":
-			// split when loading, when the current level != old level, and when restart level check is == 65793
-			return (current.loading % 2 != 0 && current.loading != old.loading && current.rslcheck == 65793);
-			return (current.end == 99);
+			if (current.mp) {
+				return (current.loading_mp == vars.loadingThreshold && current.loading_mp != old.loading_mp);
+			} else {
+				// split when loading, when the current level != old level, and when restart level check is == 65793
+				return (current.loading % 2 != 0 && current.loading != old.loading && current.rslcheck == 65793);
+			}
 			break;
 			
 		default:
@@ -81,12 +71,9 @@ split
 
 isLoading
 {	
-	// Load removal disabled while full RTA
-
-	// version independent, will always be bool
-	/*if (settings["coop"] && version == "2.9") {
-		return (current.loading2 != 0 && current.loading2 != 81);
+	if (current.mp) {
+		return (current.loading_mp == vars.loadingThreshold);
 	} else {
-		return current.loading;
-	}*/
+		return (current.loading % 2 != 0 && current.rslcheck == 65793);
+	}
 }
