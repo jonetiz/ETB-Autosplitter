@@ -12,7 +12,7 @@ This is a [LiveSplit](https://livesplit.org/) autosplitter made for *Escape the 
 
 ### Prerequisites
 - [LiveSplit](https://livesplit.org/)
-- Escape the Backrooms version 1.21 (13 August 2022 release) (other versions must be requested)
+- Escape the Backrooms from Steam
 
 ### "Automatic" Installation
 1. Right click Livesplit > Edit Splits
