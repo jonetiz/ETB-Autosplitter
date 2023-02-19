@@ -4,9 +4,8 @@
 This is a [LiveSplit](https://livesplit.org/) autosplitter made for *Escape the Backrooms*.The autosplitter also includes a load remover.
 
 ## Known Issues
-- Level 94 Town -> Level 94 Clown does not split in load screen for some reason
+- Level 94 Town -> Level 94 Clown does not split in load screen for some reason in singleplayer 2.9
 - Ending is inconsistent, sometimes it works and sometimes it doesn't
-- If you die and let the death cutscene roll, it seems to split; if you restart level before it forces the restart though, it will not split.
 
 ## Installation & Usage
 *Autosplitters can use a good deal processing power, which may result in a decline of game and/or overall system performance. Use at your own risk.*
