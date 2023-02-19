@@ -36,10 +36,8 @@ init
 
 update
 {
-	if (version == "2.9") {
-		if (current.loading_mp == 3) {
-			vars.loadingThreshold = 3; // handle lobbies after first having loading == 3
-		}
+	if (current.loading_mp == 3) {
+		vars.loadingThreshold = 3; // handle lobbies after first having loading == 3
 	}
 }
 
