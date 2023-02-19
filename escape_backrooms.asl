@@ -20,7 +20,7 @@ state ("Backrooms-Win64-Shipping", "2.3")
 
 startup
 {
-	settings.Add("23_addr", false, "Game Version 2.3");
+	settings.Add("23_addr", false, "Game Version 2.3 (Restart game to apply)");
 }
 
 init
