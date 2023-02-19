@@ -6,7 +6,7 @@ state ("Backrooms-Win64-Shipping", "2.9")
 	bool mp   		: 0x45FA838; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
 	long level		: 0x49B0968; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
 	int  loading	: 0x4567994; // loading == odd, seems consistent
-	int  loading_mp : 0x0491E0E0, 0x68, 0x80, 0x2AF0, 0xC; // loading == 2 on first lobby, then 3.
+	int  loading_mp : 0x491E0E0, 0x68, 0x80, 0x2AF0, 0xC; // loading == 2 on first lobby, then 3.
 	int  rslcheck	: 0x4A489F0; // if it's > 1, we're almost certainly *not* restarting level, and want to split (sp only)
 }
 
@@ -14,7 +14,7 @@ state ("Backrooms-Win64-Shipping", "2.3")
 {
 	bool mp   		: 0x45FA6F8; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
 	long level		: 0x49B07E8; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
-	int  loading_mp : 0x049FED0, 0x30, 0x48, 0x80, 0x2330, 0xC; // loading == 2 on first lobby, then 3.
+	int  loading_mp : 0x491FED0, 0x30, 0x48, 0x80, 0x2330, 0xC; // loading == 2 on first lobby, then 3.
 	int  loading	: 0x49AD744; // loading == odd, seems consistent
 }
 
