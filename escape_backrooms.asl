@@ -12,7 +12,9 @@ state ("Backrooms-Win64-Shipping", "2.9")
 
 state ("Backrooms-Win64-Shipping", "2.3")
 {
+	bool mp   		: 0x45FA6F8; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
 	long level		: 0x49B07E8; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
+	int  loading_mp : 0x0491E538, 0x68, 0x80, 0x2330, 0xC; // loading == 2 on first lobby, then 3.
 	int  loading	: 0x49AD744; // loading == odd, seems consistent
 }
 
@@ -69,7 +71,11 @@ split
 			}
 			break;
 		case "2.3":
-			return (current.loading % 2 != 0 && current.loading != old.loading);
+			if (current.mp) {
+				return (current.loading_mp == vars.loadingThreshold && current.loading_mp != old.loading_mp);
+			} else {
+				return (current.loading % 2 != 0 && current.loading != old.loading);
+			}
 			break;
 		default:
 			break;
@@ -88,7 +94,11 @@ isLoading
 		break;
 
 		case "2.3":
-			return (current.loading % 2 != 0);
+			if (current.mp) {
+				return (current.loading_mp == vars.loadingThreshold);
+			} else {
+				return (current.loading % 2 != 0);
+			}
 			break;
 
 		default:
