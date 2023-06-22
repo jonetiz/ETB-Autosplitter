@@ -1,9 +1,10 @@
 # ETB-Autosplitter
+Game Version 3 now supported, functionality by Permamiss & HeXaGoN
 
 ## Description
-This is a [LiveSplit](https://livesplit.org/) autosplitter made for *Escape the Backrooms*.The autosplitter also includes a load remover. Working for versions 2.3 and 2.9
+This is a [LiveSplit](https://livesplit.org/) autosplitter made for *Escape the Backrooms*.The auto splitter also includes a load remover. Working for version 3.0 with variable functionality on 2.3 and 2.9.
 
-## Known Issues
+## Known Issues (2.3/2.9 ONLY)
 - Level 94 Town -> Level 94 Clown does not split in load screen for some reason in singleplayer 2.9
 - Ending is inconsistent, sometimes it works and sometimes it doesn't
 - Some users may find the autosplitter does not work; this seems to have something to do with OS version.
