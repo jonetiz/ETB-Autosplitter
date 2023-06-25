@@ -45,11 +45,11 @@ state ("Backrooms-Win64-Shipping", "2.3") // offset -180 from 2.9
 	bool isLoading		: 0x49AD744; // 33 C0 0F 57 C0 F2 0F 11 05 and 89 43 60 8B 05
 }
 
-//startup
-//{
-//	settings.Add("29_addr", false, "Game Version 2.9 (Restart game to apply)");
-//	settings.Add("23_addr", false, "Game Version 2.3 (Restart game to apply)");
-//}
+startup
+{
+	settings.Add("29_addr", false, "Game Version 2.9 (Restart game to apply)");
+	settings.Add("23_addr", false, "Game Version 2.3 (Restart game to apply)");
+}
 
 init
 {
