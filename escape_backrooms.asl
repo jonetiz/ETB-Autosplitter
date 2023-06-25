@@ -1,12 +1,17 @@
 /*
+==3.0+ Autosplitter==
 	Authored by Permamiss & HeXaGoN
-		isLoading, justLoaded variables found by HeXaGoN
-		multiplayer variable found by Permamiss
+		isLoading1, wasLoading1 variables found by HeXaGoN
+		isLoading2, wasLoading2, multiplayer variables found by Permamiss
 
 	Shoutouts to Xero for consulting, and to Shad0w & for being our Fancy messenger!
 
+==2.3/2.9 Autosplitter==
+	Authored by Xero
+		This should be considered a legacy product. Use at your own risk.
+
 	
-Documentation Notes
+==Documentation Notes==
 
 	Better and more general documentation for LiveSplit autosplitters can be found at https://github.com/LiveSplit/LiveSplit.AutoSplitters/blob/master/README.md
 	Timer code can be found at https://github.com/LiveSplit/LiveSplit/blob/master/LiveSplit/LiveSplit.Core/Model/TimerModel.cs
@@ -15,65 +20,78 @@ Documentation Notes
 	"old" contains the values of all the defined variables in the last update
 	"current" contains the current values of all the defined variables
 	"settings" is an object used to add or get settings
-
-	2.3/2.9 functionality is by Xero and should be considered a legacy product. Use at your own risk.
 */
 
 state("Backrooms-Win64-Shipping", "3.0+")
 {
-	bool isLoading		: 0x04C5F398, 0xD28, 0x320; // sets to true when starting to fade to black, false when loading screen finishes
-	bool justLoaded		: 0x4C3CFED; // briefly true when loading screen finishes
+	bool isLoading1		: 0x04C5F398, 0xD28, 0x320; // sets to true when starting to fade to black, false when loading screen finishes
+	bool isLoading2		: 0x04C5F998, 0x8, 0x60, 0x320; // sets to true when starting to fade to black, false when loading screen finishes, backup
+	bool wasLoading1	: 0x4C3CFED; // 0 when done loading, 0-2 (maybe higher?) when loading
+	bool wasLoading2	: 0x4C3CFF0; // 0 when done loading, > 0 when loading, backup
 	bool multiplayer	: 0x4760BE8; // set to true when in multiplayer is detected (including simply being in a multiplayer lobby)
 }
 
 state ("Backrooms-Win64-Shipping", "2.9")
 {
 	bool multiplayer	: 0x45FA838; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
-	long level		: 0x49B0968; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
+	long level			: 0x49B0968; // 13194139536091 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
 	bool isLoading		: 0x49AD8C4; // 33 C0 0F 57 C0 F2 0F 11 05 and 89 43 60 8B 05
 }
 
 state ("Backrooms-Win64-Shipping", "2.3") // offset -180 from 2.9
 {
-	bool multiplayer   	: 0x45FA6F8; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
-	long level		: 0x49B07E8; // 13194139536090 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
+	bool multiplayer	: 0x45FA6F8; // detects co-op lobby. other candidates: 0x45FA834 != 0 | 0x45FA83C = 4; != 0 | 0x45FA840 = 1 != 2
+	long level			: 0x49B07E8; // 13194139536090 is always start, 13194139536054 is main menu, seems inconsistent for most other levels though
 	bool isLoading		: 0x49AD744; // 33 C0 0F 57 C0 F2 0F 11 05 and 89 43 60 8B 05
 }
 
-startup
-{
-	settings.Add("29_addr", false, "Game Version 2.9 (Restart game to apply)");
-	settings.Add("23_addr", false, "Game Version 2.3 (Restart game to apply)");
-}
+//startup
+//{
+//	settings.Add("29_addr", false, "Game Version 2.9 (Restart game to apply)");
+//	settings.Add("23_addr", false, "Game Version 2.3 (Restart game to apply)");
+//}
 
 init
 {
 	vars.inLobby = false;
-	
-	print("[EtB Autosplitter] Escape the Backrooms Autosplitter loaded");
-	print("[EtB Autosplitter] Detected game version: " + (version == "" ? "Unknown, please contact the autosplitter authors for help!" : version));
 
 	IntPtr loadStartPtr = game.MainModule.BaseAddress;
 	IntPtr loadEndPtr = game.MainModule.BaseAddress;
 
-	if (settings["23_addr"]) {
-		version = "2.3";
+	if (modules.First().ModuleMemorySize == 83517440) // ModuleMemorySize for 2.3 and 2.9
+	{
+		if (settings["23_addr"])
+		{
+			version = "2.3";
 
-		loadStartPtr = game.MainModule.BaseAddress + 0x22719DE;
-		loadEndPtr = game.MainModule.BaseAddress + 0x191F048;
-	} else if (settings["29_addr"]) {
-		version = "2.9";
-		
-		loadStartPtr = game.MainModule.BaseAddress + 0x22722DE;
-		loadEndPtr = game.MainModule.BaseAddress + 0x191F948;
-	} else if (modules.First().ModuleMemorySize == 85086208) {
+			loadStartPtr = game.MainModule.BaseAddress + 0x22719DE;
+			loadEndPtr = game.MainModule.BaseAddress + 0x191F048;
+		}
+		else if (settings["29_addr"])
+		{
+			version = "2.9";
+			
+			loadStartPtr = game.MainModule.BaseAddress + 0x22722DE;
+			loadEndPtr = game.MainModule.BaseAddress + 0x191F948;
+		}
+	}
+	else if (modules.First().ModuleMemorySize == 85086208)
+	{
 		version = "3.0+";
+		
+		current.isLoading = current.isLoading1 || current.isLoading2;
+		current.wasLoading = current.wasLoading1 || current.wasLoading2;
 	}
 
-	if (version == "2.3" || version == "2.9") {
+	print("[EtB Autosplitter] DEBUG: Escape the Backrooms Autosplitter loaded");
+	print("[EtB Autosplitter] DEBUG: Detected game version: " + (version == "" ? "Unknown version - heap size " + modules.First().ModuleMemorySize.ToString() + ", please contact the autosplitter authors for help!" : version));
+	
+	if (version == "2.3" || version == "2.9")
+	{
 		vars.isLoadingDetourPtr = game.AllocateMemory(72); // allocate 72 bytes for detour
 	
-		var isLoadingDetourBytes = new byte[] {
+		var isLoadingDetourBytes = new byte[]
+		{
 			0x4C, 0x8B, 0x0E,
 			0x48, 0x63, 0xC1,
 			0x4C, 0x6B, 0xC0, 0x70,
@@ -99,14 +117,16 @@ init
 		};
 	
 		// bytes to detour load start function
-		var loadStartDetourBytes = new List<byte>() {
+		var loadStartDetourBytes = new List<byte>()
+		{
 			0xFF, 0x15, 0x02, 0x00, 0x00, 0x00, 0xEB, 0x08
 		};
 		loadStartDetourBytes.AddRange(BitConverter.GetBytes((ulong)vars.isLoadingDetourPtr));
 		loadStartDetourBytes.AddRange(new byte[] {0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90});
 	
 		// bytes to detour load end function
-		var loadEndDetourBytes = new List<byte>() {
+		var loadEndDetourBytes = new List<byte>()
+		{
 			0xFF, 0x15, 0x02, 0x00, 0x00, 0x00, 0xEB, 0x08
 		};
 		loadEndDetourBytes.AddRange(BitConverter.GetBytes((ulong)vars.isLoadingDetourPtr+0x28));
@@ -114,7 +134,8 @@ init
 	
 		// suspend game while writing so it doesn't crash
 		game.Suspend();
-		try {
+		try
+		{
 			// write the detour code at the allocated memory address
 			game.WriteBytes((IntPtr)vars.isLoadingDetourPtr, isLoadingDetourBytes);
 	
@@ -122,11 +143,13 @@ init
 			game.WriteBytes(loadStartPtr, loadStartDetourBytes.ToArray());
 			game.WriteBytes(loadEndPtr, loadEndDetourBytes.ToArray());
 		}
-		catch {
+		catch
+		{
 			vars.FreeMemory(game);
 			throw;
 		}
-		finally {
+		finally
+		{
 			game.Resume();
 		}
 	}
@@ -134,8 +157,12 @@ init
 
 update
 {
-	if (version == "2.3" || version == "2.9") {
-		current.loading_mp = game.ReadValue<bool>((IntPtr)vars.isLoadingDetourPtr+0x47);
+	if (version == "2.3" || version == "2.9")
+		current.loading_mp = game.ReadValue<bool>((IntPtr)vars.isLoadingDetourPtr + 0x47);
+	else
+	{
+		current.isLoading = current.isLoading1 || current.isLoading2; // lazy fix for finding the right pointer, since 1 works for most, 2 works for others
+		current.wasLoading = current.wasLoading1 || current.wasLoading2; // lazy fix for finding the right pointer, since 1 works for most, 2 works for others
 	}
 }
 
@@ -150,15 +177,15 @@ start
 			return (current.level == 13194139536090 && (current.isLoading || current.loading_mp));
 			break;
 		case "3.0+":
-			if (!current.justLoaded && old.justLoaded) // have to use this since there is no fade to black when starting from Main Menu
+			if (!current.wasLoading && old.wasLoading) // if we just finished loading, then (have to use this since there is no fade to black when starting from Main Menu)
 			{
-				if (current.multiplayer && !vars.inLobby)
+				if (current.multiplayer && !vars.inLobby) // prevent multiplayer lobby from starting timer
 				{
 					vars.inLobby = true;
 					return false;
 				}
-		
-				vars.inLobby = false;
+
+				vars.inLobby = false; // if not in multiplayer OR we were in the lobby, then start the timer
 				return true;
 			}
 			break;
@@ -169,22 +196,17 @@ start
 
 split
 {
-	if (version != "3.0+") {
-		if (current.multiplayer) {
-			return (current.loading_mp && current.loading_mp != old.loading_mp);
-		} else {
-			return (current.isLoading && current.isLoading != old.isLoading);
-		}
-	} else {
-		return current.isLoading && !old.isLoading;
-	}
+	if (version != "3.0+" && current.multiplayer)
+		return (current.loading_mp && current.loading_mp != old.loading_mp);
+	
+	return current.isLoading && !old.isLoading;
 }
 
 isLoading
-{	
-	if (version != "3.0+" && current.multiplayer) {
+{
+	if (version != "3.0+" && current.multiplayer)
 		return (current.loading_mp);
-	}
+
 	return current.isLoading;
 }
 
