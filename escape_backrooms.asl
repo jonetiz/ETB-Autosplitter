@@ -22,7 +22,16 @@
 	"settings" is an object used to add or get settings
 */
 
-state("Backrooms-Win64-Shipping", "3.0+")
+state("Backrooms-Win64-Shipping", "3.10+")
+{
+	bool isLoading1		: 0x04C60558, 0xD28, 0x328; // sets to true when starting to fade to black, false when loading screen finishes
+	bool isLoading2		: 0x04C60B58, 0x8, 0x60, 0x328; // sets to true when starting to fade to black, false when loading screen finishes, backup
+	bool wasLoading1	: 0x4C3E1AD; // 0 when done loading, 0-2 (maybe higher?) when loading
+	bool wasLoading2	: 0x4C3E1B0; // 0 when done loading, > 0 when loading, backup
+	bool multiplayer	: 0x4761C78; // set to true when in multiplayer is detected (including simply being in a multiplayer lobby)
+}
+
+state("Backrooms-Win64-Shipping", "3.0 - 3.9")
 {
 	bool isLoading1		: 0x04C5F398, 0xD28, 0x320; // sets to true when starting to fade to black, false when loading screen finishes
 	bool isLoading2		: 0x04C5F998, 0x8, 0x60, 0x320; // sets to true when starting to fade to black, false when loading screen finishes, backup
@@ -70,26 +79,33 @@ init
 		else if (settings["29_addr"])
 		{
 			version = "2.9";
-			
+
 			loadStartPtr = game.MainModule.BaseAddress + 0x22722DE;
 			loadEndPtr = game.MainModule.BaseAddress + 0x191F948;
 		}
 	}
-	else if (modules.First().ModuleMemorySize == 85086208)
+	else if (modules.First().ModuleMemorySize == 85086208) // ModuleMemorySize for 3.0 - 3.9
 	{
-		version = "3.0+";
-		
+		version = "3.0 - 3.9";
+
 		current.isLoading = current.isLoading1 || current.isLoading2;
 		current.wasLoading = current.wasLoading1 || current.wasLoading2;
 	}
 
+	else if (modules.First().ModuleMemorySize == 85090304) // ModuleMemorySize for 3.10+
+	{
+		version = "3.10+";
+
+		current.isLoading = current.isLoading1 || current.isLoading2;
+		current.wasLoading = current.wasLoading1 || current.wasLoading2;
+	}
 	print("[EtB Autosplitter] DEBUG: Escape the Backrooms Autosplitter loaded");
 	print("[EtB Autosplitter] DEBUG: Detected game version: " + (version == "" ? "Unknown version - heap size " + modules.First().ModuleMemorySize.ToString() + ", please contact the autosplitter authors for help!" : version));
-	
+
 	if (version == "2.3" || version == "2.9")
 	{
 		vars.isLoadingDetourPtr = game.AllocateMemory(72); // allocate 72 bytes for detour
-	
+
 		var isLoadingDetourBytes = new byte[]
 		{
 			0x4C, 0x8B, 0x0E,
@@ -100,22 +116,22 @@ init
 			0x48, 0x6B, 0xD1, 0x70,
 			0x4B, 0x8D, 0x0C, 0x39,
 			0x49, 0x03, 0xD1,
-			0xC7, 0x05, 0x21, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 
+			0xC7, 0x05, 0x21, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
 			0xC3, // ret
-			
+
 			0xCC,
-			
+
 			0x49, 0x89, 0x5B, 0x10,
 			0x41, 0x8B, 0xDC,
 			0x49, 0x89, 0x7B, 0x20,
 			0x4C, 0x89, 0x65, 0x97,
-			0x4C, 0x89, 0x65, 0x9F, 
+			0x4C, 0x89, 0x65, 0x9F,
 			0xC7, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0xC3, // ret
 			0xCC,
 			0x00 // value read for load == 1
 		};
-	
+
 		// bytes to detour load start function
 		var loadStartDetourBytes = new List<byte>()
 		{
@@ -123,7 +139,7 @@ init
 		};
 		loadStartDetourBytes.AddRange(BitConverter.GetBytes((ulong)vars.isLoadingDetourPtr));
 		loadStartDetourBytes.AddRange(new byte[] {0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90});
-	
+
 		// bytes to detour load end function
 		var loadEndDetourBytes = new List<byte>()
 		{
@@ -131,14 +147,14 @@ init
 		};
 		loadEndDetourBytes.AddRange(BitConverter.GetBytes((ulong)vars.isLoadingDetourPtr+0x28));
 		loadEndDetourBytes.AddRange(new byte[] {0x90, 0x90, 0x90});
-	
+
 		// suspend game while writing so it doesn't crash
 		game.Suspend();
 		try
 		{
 			// write the detour code at the allocated memory address
 			game.WriteBytes((IntPtr)vars.isLoadingDetourPtr, isLoadingDetourBytes);
-	
+
 			// write detour calls
 			game.WriteBytes(loadStartPtr, loadStartDetourBytes.ToArray());
 			game.WriteBytes(loadEndPtr, loadEndDetourBytes.ToArray());
@@ -176,7 +192,8 @@ start
 		case "2.3":
 			return (current.level == 13194139536090 && (current.isLoading || current.loading_mp));
 			break;
-		case "3.0+":
+		case "3.10+":
+		case "3.0 - 3.9":
 			if (!current.wasLoading && old.wasLoading) // if we just finished loading, then (have to use this since there is no fade to black when starting from Main Menu)
 			{
 				if (current.multiplayer && !vars.inLobby) // prevent multiplayer lobby from starting timer
@@ -196,15 +213,15 @@ start
 
 split
 {
-	if (version != "3.0+" && current.multiplayer)
+	if ((version != "3.0 - 3.9" && version != "3.10+") && current.multiplayer)
 		return (current.loading_mp && current.loading_mp != old.loading_mp);
-	
+
 	return current.isLoading && !old.isLoading;
 }
 
 isLoading
 {
-	if (version != "3.0+" && current.multiplayer)
+	if ((version != "3.0 - 3.9" && version != "3.10+") && current.multiplayer)
 		return (current.loading_mp);
 
 	return current.isLoading;
