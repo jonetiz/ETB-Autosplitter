@@ -1,5 +1,9 @@
 /*
-==3.0+ Autosplitter==
+==3.10+ Autosplitter==
+	Authored by Permamiss & HeXaGoN
+		3.0 - 3.9 variables updated to work with 3.10+ by theframeburglar
+
+==3.0 - 3.9 Autosplitter==
 	Authored by Permamiss & HeXaGoN
 		isLoading1, wasLoading1 variables found by HeXaGoN
 		isLoading2, wasLoading2, multiplayer variables found by Permamiss
