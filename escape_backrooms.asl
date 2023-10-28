@@ -130,10 +130,6 @@ init
 		{
 			version = "3.0 - 3.9";
 		}
-		else
-		{
-			version = "unknown";
-		}
 		
 		current.isLoading = current.isLoading1 || current.isLoading2;
 		current.wasLoading = current.wasLoading1 || current.wasLoading2;
