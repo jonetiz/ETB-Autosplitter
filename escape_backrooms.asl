@@ -1,7 +1,8 @@
 /*
-==3.10+ Autosplitter==
+==3.11 (Halloween) Autosplitter==
+==3.10 Autosplitter==
 	Authored by Permamiss & HeXaGoN
-		3.0 - 3.9 variables updated to work with 3.10+ by theframeburglar
+		3.0 - 3.9 variables updated to work with newer versions by theframeburglar
 
 ==3.0 - 3.9 Autosplitter==
 	Authored by Permamiss & HeXaGoN
@@ -25,8 +26,15 @@
 	"current" contains the current values of all the defined variables
 	"settings" is an object used to add or get settings
 */
-
-state("Backrooms-Win64-Shipping", "3.10+")
+state("Backrooms-Win64-Shipping", "3.11 (Halloween)")
+{
+	bool isLoading1		: 0x04C5F458, 0xD28, 0x328; // sets to true when starting to fade to black, false when loading screen finishes
+	bool isLoading2		: 0x04C5FA58, 0x8, 0x60, 0x328; // sets to true when starting to fade to black, false when loading screen finishes, backup
+	bool wasLoading1	: 0x4C3D0AD; // 0 when done loading, 0-2 (maybe higher?) when loading
+	bool wasLoading2	: 0x4C3D0B0; // 0 when done loading, > 0 when loading, backup
+	bool multiplayer	: 0x4760C78; // set to true when in multiplayer is detected (including simply being in a multiplayer lobby)
+}
+state("Backrooms-Win64-Shipping", "3.10")
 {
 	bool isLoading1		: 0x04C60558, 0xD28, 0x328; // sets to true when starting to fade to black, false when loading screen finishes
 	bool isLoading2		: 0x04C60B58, 0x8, 0x60, 0x328; // sets to true when starting to fade to black, false when loading screen finishes, backup
@@ -67,7 +75,8 @@ startup
 init
 {
 	vars.inLobby = false;
-
+	var scanner = new SignatureScanner(game, game.MainModule.BaseAddress, modules.First().ModuleMemorySize);
+	
 	IntPtr loadStartPtr = game.MainModule.BaseAddress;
 	IntPtr loadEndPtr = game.MainModule.BaseAddress;
 
@@ -90,19 +99,50 @@ init
 	}
 	else if (modules.First().ModuleMemorySize == 85086208) // ModuleMemorySize for 3.0 - 3.9
 	{
-		version = "3.0 - 3.9";
-
+		// Versions "3.0 - 3.9" and "3.11 (Halloween)" share the same ModuleMemorySize but have different base address/offsets for their variables.
+		// This is the array of bytes I use to capture "isLoading1" variable. 
+		IntPtr ptr = scanner.Scan(new SigScanTarget(0, // target the 0th byte
+		"48 83 3d ?? ?? ?? ?? 00", // cmp qword ptr ds:[target],0
+		"74 52", // je rel
+		"49 8b 8f c0 00 00 00", // mov rcx, qword ptr ds:[r15+0xc0]
+		"41 0f ba ec 07", // bts r12d,0x7
+		"48 85 c9", // test rcx, rcx
+		"74 38", // je rel
+		"48 8b 01", // mov rax,qword ptr ds:[rcx]
+		"ff 10", // call rax
+		"48 85 c0" // test rax, rax
+		));
+		if (ptr == IntPtr.Zero)
+		{
+			throw new Exception("Could not find isLoading1!");
+		}
+		
+		ulong instrAddr = (ulong)ptr;
+		ulong nextInstrAddr = (ulong)ptr + 8;
+		ulong instrOperand = game.ReadValue<uint>((IntPtr)instrAddr + 3); // We only want 4 bytes in "48 8d 3d ?? ?? ?? ??"
+		ulong isLoading1Base = (nextInstrAddr + instrOperand)  - (ulong)game.MainModule.BaseAddress;
+		
+		if(0x04C5F458 == isLoading1Base)
+		{
+			version = "3.11 (Halloween)";
+		}
+		else if(0x04C5F398 == isLoading1Base)
+		{
+			version = "3.0 - 3.9";
+		}
+		
 		current.isLoading = current.isLoading1 || current.isLoading2;
 		current.wasLoading = current.wasLoading1 || current.wasLoading2;
 	}
 
-	else if (modules.First().ModuleMemorySize == 85090304) // ModuleMemorySize for 3.10+
+	else if (modules.First().ModuleMemorySize == 85090304) // ModuleMemorySize for 3.10
 	{
-		version = "3.10+";
+		version = "3.10";
 
 		current.isLoading = current.isLoading1 || current.isLoading2;
 		current.wasLoading = current.wasLoading1 || current.wasLoading2;
 	}
+	
 	print("[EtB Autosplitter] DEBUG: Escape the Backrooms Autosplitter loaded");
 	print("[EtB Autosplitter] DEBUG: Detected game version: " + (version == "" ? "Unknown version - heap size " + modules.First().ModuleMemorySize.ToString() + ", please contact the autosplitter authors for help!" : version));
 
@@ -196,7 +236,8 @@ start
 		case "2.3":
 			return (current.level == 13194139536090 && (current.isLoading || current.loading_mp));
 			break;
-		case "3.10+":
+		case "3.11 (Halloween)":
+		case "3.10":
 		case "3.0 - 3.9":
 			if (!current.wasLoading && old.wasLoading) // if we just finished loading, then (have to use this since there is no fade to black when starting from Main Menu)
 			{
@@ -217,7 +258,7 @@ start
 
 split
 {
-	if ((version != "3.0 - 3.9" && version != "3.10+") && current.multiplayer)
+	if ((version == "2.3" || version == "2.9") && current.multiplayer)
 		return (current.loading_mp && current.loading_mp != old.loading_mp);
 
 	return current.isLoading && !old.isLoading;
@@ -225,7 +266,7 @@ split
 
 isLoading
 {
-	if ((version != "3.0 - 3.9" && version != "3.10+") && current.multiplayer)
+	if ((version == "2.3" || version == "2.9") && current.multiplayer)
 		return (current.loading_mp);
 
 	return current.isLoading;
