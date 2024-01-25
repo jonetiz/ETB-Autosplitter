@@ -1,4 +1,7 @@
 /*
+==4.0+ Autosplitter==
+	Variables for 4.0+ found by Reokin, thanks to theframeburglar for teaching me how to do it!
+	Restructured init
 ==3.13 (Christmas) Autosplitter==
 ==3.11 (Halloween) Autosplitter==
 ==3.10 Autosplitter==
@@ -27,6 +30,14 @@
 	"current" contains the current values of all the defined variables
 	"settings" is an object used to add or get settings
 */
+state("Backrooms-Win64-Shipping", "4.0+")
+{
+	bool isLoading1		: 0x04C63B18, 0xD28, 0x330; // sets to true when starting to fade to black, false when loading screen finishes
+	bool isLoading2		: 0x04C64118, 0x8, 0x60, 0x330; // sets to true when starting to fade to black, false when loading screen finishes, backup
+	bool wasLoading1	: 0x4C4176D; // 0 when done loading, 0-2 (maybe higher?) when loading
+	bool wasLoading2	: 0x4C41770; // 0 when done loading, > 0 when loading, backup
+	bool multiplayer	: 0x4765228; // set to true when in multiplayer is detected (including simply being in a multiplayer lobby)
+}
 state("Backrooms-Win64-Shipping", "3.13 (Christmas)")
 {
 	bool isLoading1		: 0x04C605D8, 0xD28, 0x328; // sets to true when starting to fade to black, false when loading screen finishes
@@ -81,6 +92,7 @@ state ("Backrooms-Win64-Shipping", "2.3") // offset -180 from 2.9
 
 startup
 {
+	settings.Add("30_addr", false, "Game Version 3.0-3.13 (Restart game to apply)");
 	settings.Add("29_addr", false, "Game Version 2.9 (Restart game to apply)");
 	settings.Add("23_addr", false, "Game Version 2.3 (Restart game to apply)");
 }
@@ -94,16 +106,19 @@ init
 	IntPtr loadStartPtr = game.MainModule.BaseAddress;
 	IntPtr loadEndPtr = game.MainModule.BaseAddress;
 
-	if (modules.First().ModuleMemorySize == 83517440) // ModuleMemorySize for 2.3 and 2.9
+	if (settings["23_addr"])
 	{
-		if (settings["23_addr"])
+		if (modules.First().ModuleMemorySize == 83517440) // ModuleMemorySize for 2.3 and 2.9
 		{
 			version = "2.3";
-
+			
 			loadStartPtr = game.MainModule.BaseAddress + 0x22719DE;
 			loadEndPtr = game.MainModule.BaseAddress + 0x191F048;
 		}
-		else if (settings["29_addr"])
+	}
+	else if (settings["29_addr"])
+	{
+		if (modules.First().ModuleMemorySize == 83517440) // ModuleMemorySize for 2.3 and 2.9
 		{
 			version = "2.9";
 
@@ -111,92 +126,93 @@ init
 			loadEndPtr = game.MainModule.BaseAddress + 0x191F948;
 		}
 	}
-	else if (modules.First().ModuleMemorySize == 85086208) // ModuleMemorySize for 3.0 - 3.9
+	else if (settings["30_addr"])
 	{
-		// Versions "3.0 - 3.9" and "3.11 (Halloween)" share the same ModuleMemorySize but have different base address/offsets for their variables.
-		// This is the array of bytes I use to capture "isLoading1" variable. 
-		IntPtr ptr = scanner.Scan(new SigScanTarget(0, // target the 0th byte
-		"48 83 3d ?? ?? ?? ?? 00", // cmp qword ptr ds:[target],0
-		"74 52", // je rel
-		"49 8b 8f c0 00 00 00", // mov rcx, qword ptr ds:[r15+0xc0]
-		"41 0f ba ec 07", // bts r12d,0x7
-		"48 85 c9", // test rcx, rcx
-		"74 38", // je rel
-		"48 8b 01", // mov rax,qword ptr ds:[rcx]
-		"ff 10", // call rax
-		"48 85 c0" // test rax, rax
-		));
-		if (ptr == IntPtr.Zero)
+		if (modules.First().ModuleMemorySize == 85086208) // ModuleMemorySize for 3.0 - 3.9
 		{
-			throw new Exception("Could not find isLoading1!");
+			// Versions "3.0 - 3.9" and "3.11 (Halloween)" share the same ModuleMemorySize but have different base address/offsets for their variables.
+			// This is the array of bytes I use to capture "isLoading1" variable. 
+			IntPtr ptr = scanner.Scan(new SigScanTarget(0, // target the 0th byte
+			"48 83 3d ?? ?? ?? ?? 00", // cmp qword ptr ds:[target],0
+			"74 52", // je rel
+			"49 8b 8f c0 00 00 00", // mov rcx, qword ptr ds:[r15+0xc0]
+			"41 0f ba ec 07", // bts r12d,0x7
+			"48 85 c9", // test rcx, rcx
+			"74 38", // je rel
+			"48 8b 01", // mov rax,qword ptr ds:[rcx]
+			"ff 10", // call rax
+			"48 85 c0" // test rax, rax
+			));
+			if (ptr == IntPtr.Zero)
+			{
+				throw new Exception("Could not find isLoading1!");
+			}
+		
+			ulong instrAddr = (ulong)ptr;
+			ulong nextInstrAddr = (ulong)ptr + 8;
+			ulong instrOperand = game.ReadValue<uint>((IntPtr)instrAddr + 3); // We only want 4 bytes in "48 8d 3d ?? ?? ?? ??"
+			ulong isLoading1Base = (nextInstrAddr + instrOperand)  - (ulong)game.MainModule.BaseAddress;
+			
+			if(0x04C5F458 == isLoading1Base)
+			{
+				version = "3.11 (Halloween)";
+			}
+			else if(0x04C5F398 == isLoading1Base)
+			{
+				version = "3.0 - 3.9";
+			}
+			
+			current.isLoading = current.isLoading1 || current.isLoading2;
+			current.wasLoading = current.wasLoading1 || current.wasLoading2;
 		}
-		
-		ulong instrAddr = (ulong)ptr;
-		ulong nextInstrAddr = (ulong)ptr + 8;
-		ulong instrOperand = game.ReadValue<uint>((IntPtr)instrAddr + 3); // We only want 4 bytes in "48 8d 3d ?? ?? ?? ??"
-		ulong isLoading1Base = (nextInstrAddr + instrOperand)  - (ulong)game.MainModule.BaseAddress;
-		
-		if(0x04C5F458 == isLoading1Base)
+		else if (modules.First().ModuleMemorySize == 85090304) // ModuleMemorySize for 3.10
 		{
-			version = "3.11 (Halloween)";
+			// Versions "3.10" and "3.13 (Christmas)" share the same ModuleMemorySize but have different base address/offsets for their variables.
+			// This is the array of bytes I use to capture "isLoading1" variable. 
+			IntPtr ptr = scanner.Scan(new SigScanTarget(0, // target the 0th byte
+			"48 83 3d ?? ?? ?? ?? 00", // cmp qword ptr ds:[target],0
+			"74 52", // je rel
+			"49 8b 8f c0 00 00 00", // mov rcx, qword ptr ds:[r15+0xc0]
+			"41 0f ba ec 07", // bts r12d,0x7
+			"48 85 c9", // test rcx, rcx
+			"74 38", // je rel
+			"48 8b 01", // mov rax,qword ptr ds:[rcx]
+			"ff 10", // call rax
+			"48 85 c0" // test rax, rax
+			));
+			if (ptr == IntPtr.Zero)
+			{
+				throw new Exception("Could not find isLoading1!");
+			}
+			
+			ulong instrAddr = (ulong)ptr;
+			ulong nextInstrAddr = (ulong)ptr + 8;
+			ulong instrOperand = game.ReadValue<uint>((IntPtr)instrAddr + 3); // We only want 4 bytes in "48 8d 3d ?? ?? ?? ??"
+			ulong isLoading1Base = (nextInstrAddr + instrOperand)  - (ulong)game.MainModule.BaseAddress;
+			
+			if(0x04C605D8 == isLoading1Base)
+			{
+				version = "3.13 (Christmas)";
+			}
+			else if(0x04C60558 == isLoading1Base)
+			{
+				version = "3.10";
+			}
+			
+			current.isLoading = current.isLoading1 || current.isLoading2;
+			current.wasLoading = current.wasLoading1 || current.wasLoading2;
+
+			//version = "3.10";
+
+			//current.isLoading = current.isLoading1 || current.isLoading2;
+			//current.wasLoading = current.wasLoading1 || current.wasLoading2;
 		}
-		else if(0x04C5F398 == isLoading1Base)
-		{
-			version = "3.0 - 3.9";
-		}
-		
-		current.isLoading = current.isLoading1 || current.isLoading2;
-		current.wasLoading = current.wasLoading1 || current.wasLoading2;
+	}
+	else if (modules.First().ModuleMemorySize == 85102592)
+	{
+		version = "4.0+";
 	}
 
-	else if (modules.First().ModuleMemorySize == 85090304) // ModuleMemorySize for 3.10
-	{
-		// Versions "3.10" and "3.13 (Christmas)" share the same ModuleMemorySize but have different base address/offsets for their variables.
-		// This is the array of bytes I use to capture "isLoading1" variable. 
-		IntPtr ptr = scanner.Scan(new SigScanTarget(0, // target the 0th byte
-		"48 83 3d ?? ?? ?? ?? 00", // cmp qword ptr ds:[target],0
-		"74 52", // je rel
-		"49 8b 8f c0 00 00 00", // mov rcx, qword ptr ds:[r15+0xc0]
-		"41 0f ba ec 07", // bts r12d,0x7
-		"48 85 c9", // test rcx, rcx
-		"74 38", // je rel
-		"48 8b 01", // mov rax,qword ptr ds:[rcx]
-		"ff 10", // call rax
-		"48 85 c0" // test rax, rax
-		));
-		if (ptr == IntPtr.Zero)
-		{
-			throw new Exception("Could not find isLoading1!");
-		}
-		
-		ulong instrAddr = (ulong)ptr;
-		ulong nextInstrAddr = (ulong)ptr + 8;
-		ulong instrOperand = game.ReadValue<uint>((IntPtr)instrAddr + 3); // We only want 4 bytes in "48 8d 3d ?? ?? ?? ??"
-		ulong isLoading1Base = (nextInstrAddr + instrOperand)  - (ulong)game.MainModule.BaseAddress;
-		
-		if(0x04C605D8 == isLoading1Base)
-		{
-			version = "3.13 (Christmas)";
-		}
-		else if(0x04C60558 == isLoading1Base)
-		{
-			version = "3.10";
-		}
-		
-		current.isLoading = current.isLoading1 || current.isLoading2;
-		current.wasLoading = current.wasLoading1 || current.wasLoading2;
-	
-	
-	
-	
-	
-	
-		//version = "3.10";
-
-		//current.isLoading = current.isLoading1 || current.isLoading2;
-		//current.wasLoading = current.wasLoading1 || current.wasLoading2;
-	}
-	
 	print("[EtB Autosplitter] DEBUG: Escape the Backrooms Autosplitter loaded");
 	print("[EtB Autosplitter] DEBUG: Detected game version: " + (version == "" ? "Unknown version - heap size " + modules.First().ModuleMemorySize.ToString() + ", please contact the autosplitter authors for help!" : version));
 
@@ -268,9 +284,10 @@ init
 		}
 	}
 	
-	else
+	else if (settings["30_addr"])
 	{
 		// For any non 2.3/2.9 version create a wasLoading3 variable so we can still capture when we start iffy levels like Poolrooms
+		// ^ outdated, only active if 3.0-3.13 is selected
 		
 		// first hook
 		IntPtr ptrWasLoading3Addr = scanner.Scan(new SigScanTarget(0, // target the 0th byte
@@ -337,8 +354,10 @@ init
 update
 {
 	if (version == "2.3" || version == "2.9")
+	{
 		current.loading_mp = game.ReadValue<bool>((IntPtr)vars.isLoadingDetourPtr + 0x47);
-	else
+	}
+	else if (settings["30_addr"])
 	{
 		if(vars.timerStarted)
 		{
@@ -351,7 +370,11 @@ update
 		current.isLoading = current.isLoading1 || current.isLoading2; // lazy fix for finding the right pointer, since 1 works for most, 2 works for others
 		current.wasLoading = current.wasLoading1 || current.wasLoading2; // lazy fix for finding the right pointer, since 1 works for most, 2 works for others
 	}
-	
+	else
+	{
+		current.isLoading = current.isLoading1 || current.isLoading2; // lazy fix for finding the right pointer, since 1 works for most, 2 works for others
+		current.wasLoading = current.wasLoading1 || current.wasLoading2; // lazy fix for finding the right pointer, since 1 works for most, 2 works for others
+	}
 }
 
 start
@@ -394,6 +417,20 @@ start
 			else if (wasLoading3 == 1)
 			{
 				memory.WriteValue<byte>((IntPtr)vars.wasLoading3, 0); // not loading
+			}
+			break;
+		case "4.0+":
+			if (!current.wasLoading && old.wasLoading) // have to use this since there is no fade to black when starting from Main Menu
+			{
+				if (current.multiplayer && !vars.inLobby)
+				{
+					vars.inLobby = true;
+					return false;
+				}
+
+				vars.inLobby = false;
+				vars.timerStarted = true;
+				return true;
 			}
 			break;
 		default:
